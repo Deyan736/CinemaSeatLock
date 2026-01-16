@@ -4,15 +4,18 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "reservations",
-        uniqueConstraints = @UniqueConstraint(columnNames = "seat_id"))
+@Table(
+        name = "reservations",
+        uniqueConstraints = @UniqueConstraint(columnNames = "seat_id")
+)
 public class Reservation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "seat_id", nullable = false)
     private Seat seat;
 
     private String userEmail;
@@ -30,4 +33,5 @@ public class Reservation {
     public Long getId() { return id; }
     public Seat getSeat() { return seat; }
     public String getUserEmail() { return userEmail; }
+    public Instant getCreatedAt() { return createdAt; }
 }

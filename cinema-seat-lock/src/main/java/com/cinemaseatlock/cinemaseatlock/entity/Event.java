@@ -1,6 +1,7 @@
 package com.cinemaseatlock.cinemaseatlock.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -13,13 +14,18 @@ public class Event {
 
     private String name;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
-    private List<Seat> seats;
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Seat> seats = new ArrayList<>();
 
     protected Event() {}
 
     public Event(String name) {
         this.name = name;
+    }
+
+    // helper da održava obe strane relacije
+    public void addSeat(Seat seat) {
+        seats.add(seat);
     }
 
     public Long getId() { return id; }
