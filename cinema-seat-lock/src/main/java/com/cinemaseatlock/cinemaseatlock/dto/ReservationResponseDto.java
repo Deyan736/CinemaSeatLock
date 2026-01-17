@@ -14,6 +14,7 @@ public class ReservationResponseDto {
             Long seatId,
             String status,
             Instant createdAt
+
     ) {
         this.reservationId = reservationId;
         this.seatId = seatId;

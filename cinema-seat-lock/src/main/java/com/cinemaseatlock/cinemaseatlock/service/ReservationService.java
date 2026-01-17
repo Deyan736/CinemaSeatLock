@@ -1,12 +1,17 @@
 package com.cinemaseatlock.cinemaseatlock.service;
 
+import com.cinemaseatlock.cinemaseatlock.dto.ReservationResponseDto;
 import com.cinemaseatlock.cinemaseatlock.entity.*;
 import com.cinemaseatlock.cinemaseatlock.exception.*;
 import com.cinemaseatlock.cinemaseatlock.repository.ReservationRepository;
 import com.cinemaseatlock.cinemaseatlock.repository.SeatRepository;
+import com.cinemaseatlock.cinemaseatlock.mapper.ReservationMapper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import java.util.List;
+
 
 import java.time.Instant;
 
@@ -62,4 +67,12 @@ public class ReservationService {
             throw new InvalidEmailException(email);
         }
     }
+    @Transactional(readOnly = true)
+    public List<ReservationResponseDto> getAllReservations() {
+        return reservationRepository.findAll()
+                .stream()
+                .map(ReservationMapper::toDto)
+                .toList();
+    }
+
 }
