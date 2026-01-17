@@ -1,8 +1,10 @@
 package com.cinemaseatlock.cinemaseatlock.service;
 
 import com.cinemaseatlock.cinemaseatlock.entity.*;
+import com.cinemaseatlock.cinemaseatlock.exception.*;
 import com.cinemaseatlock.cinemaseatlock.repository.ReservationRepository;
 import com.cinemaseatlock.cinemaseatlock.repository.SeatRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,30 +26,40 @@ public class ReservationService {
 
     @Transactional
     public Reservation createReservation(Long seatId, String email) {
+        validateEmail(email);
 
         Seat seat = seatRepository.findById(seatId)
-                .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+                .orElseThrow(() -> new SeatNotFoundException(seatId));
 
         Instant now = Instant.now();
         seat.unlockIfExpired(now);
 
-        if (seat.getStatus() != SeatStatus.LOCKED) {
-            throw new IllegalStateException("Seat must be LOCKED before reservation");
-        }
-
-        boolean alreadyReserved =
-                reservationRepository.existsActiveReservation(seatId, ReservationStatus.CONFIRMED);
-
-        if (alreadyReserved) {
-            throw new IllegalStateException("Seat already has active reservation");
-        }
+        ensureSeatCanBeReserved(seat);
 
         Reservation reservation = new Reservation(seat, email);
-        reservationRepository.save(reservation);
 
-        // potvrda kupovine
-        seat.markSold();
+        try {
+            Reservation saved = reservationRepository.save(reservation);
+            seat.markSold(); // JPA managed entity -> update ide u istoj transakciji
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            // Ako ima unique constraint nad seat_id, ovo hvata paralelne request-ove
+            throw new SeatAlreadyHasReservationException(seatId);
+        }
+    }
 
-        return reservation;
+    private static void ensureSeatCanBeReserved(Seat seat) {
+        if (seat.getStatus() != SeatStatus.LOCKED) {
+            throw new SeatMustBeLockedException(seat.getId());
+        }
+        if (seat.getStatus() == SeatStatus.SOLD) {
+            throw new SeatAlreadySoldException(seat.getId());
+        }
+    }
+
+    private static void validateEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new InvalidEmailException(email);
+        }
     }
 }
